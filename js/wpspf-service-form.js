@@ -15,7 +15,6 @@ jQuery(document).ready(function(){
       }
       jQuery(this).val(foo);
     });
-    
     //intial load, hide fields until a payment method selection is made (if check enabled).
     if (wpspf_vars.wpspfnet_enable_check == 1){
 		jQuery('#authorizenet_lightweight-card-numberrow').hide();
@@ -74,7 +73,7 @@ jQuery('#wpspf_form').on('submit',function(event){
           jQuery('#wpspf_response').html(blankHtml);
           jQuery.ajax( 
               {
-                url : admin_ajax_url,
+                  url : admin_ajax_url,
                 type : 'post',
                 data : {
                     action : 'wpspf_service_payment_request',
