@@ -1,11 +1,11 @@
 (function($){
     $('#doaction, #doaction2').on('click', function() {
-        var action = (this.id === 'doaction') ? $('#bulk-action-selector-top').val() : $('bulk-action-selector-bottom').val();
-        if( action === "-1" ){
+        var action = ('doaction' === this.id) ? $('#bulk-action-selector-top').val() : $('bulk-action-selector-bottom').val();
+        if( "-1" === action ){
             alert('Please select an action.');
             return false;
         }
-        else if( action === 'delete' ) {
+        else if( 'delete' === action ) {
             return confirm('Permanently delete the selected items?');
         }
     });
