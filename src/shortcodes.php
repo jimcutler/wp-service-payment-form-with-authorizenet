@@ -1,12 +1,15 @@
 <?php
-function wpspf_paymentform(){
+function wpspf_paymentform($atts = []){
+    extract(shortcode_atts(array(
+        'form_id' => 1,
+    ), $atts));
     $publickey = get_option( 'wpspf_sitekey' );
     $admin_ajax_url = admin_url('admin-ajax.php');
     
     $formHtml = '<div class="payment_box payment_method_authorizenet_lightweight"><h1>'.esc_attr( get_option('wpspf_paymentheading') ).'</h1><div class="wpspf_form_container" id="wpspf_form_container">
         <form method="post" id="wpspf_form" onsubmit="return wpspfCheckGrecaptcha();" name="payment" enctype="multipart/form-data" action="">            
         <table id="wc-authorizenet_lightweight-cc-form" class="wc-credit-card-form wc-payment-form">';
-    $formFields = wpspf_get_form_fields();
+    $formFields = wpspf_get_form_fields($form_id);
         //override the form fields
         $formFields = apply_filters( 'wpspf_frontend_form_fields', $formFields);
     if(!empty($formFields) && count($formFields)>0){
