@@ -1,11 +1,12 @@
 <?php
 $entryId = $_GET['wpspf_entry'];
+$formId = (isset($_GET['form_id']) && intval($_GET['form_id']) > 0) ? intval($_GET['form_id']) : 1;
 global $wpdb;
 $wpspfPaymentEntryMetaTable = $wpdb->prefix.'wpspf_payment_entry_meta';
 $data = $wpdb->get_results("SELECT * FROM $wpspfPaymentEntryMetaTable WHERE entry_id = '$entryId'",ARRAY_A);
 //echo '<pre>'; print_r($data); echo '</pre>';
 $fieldAttributes = [];
-$formFields = wpspf_get_form_fields();
+$formFields = wpspf_get_form_fields($formId);
     if(!empty($formFields) && count($formFields)>0){
         foreach($formFields as $formField){
             $fieldAttribute = json_decode($formField->field_other_attributes);

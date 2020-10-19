@@ -239,7 +239,11 @@ function wpspf_get_form_field_ajax(){
 add_action( 'wp_ajax_wpspf_get_form_field', 'wpspf_get_form_field_ajax');
 
 function wpspf_save_form_field_ajax(){
-	if(!empty($_POST['action']) && !empty($_POST['field_detail'])){
+    check_ajax_referer('wpspf_nonce_field_action', 'wpspf_nonce');
+    if( !current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( 'You must have administrative permissions to add/edit Service Payment form fields.', 403 );
+    }
+    if(!empty($_POST['action']) && !empty($_POST['field_detail'])){
 		$attributes = [];
 		foreach($_POST['field_detail'] as $attribute){
 			$attributes[$attribute['name']] = $attribute['value'];
@@ -294,23 +298,23 @@ function wpspf_save_form_field_ajax(){
 add_action( 'wp_ajax_wpspf_save_form_field', 'wpspf_save_form_field_ajax');
 
 //finction to get form fields
-function wpspf_get_form_fields($fieldId = null){
+function wpspf_get_form_fields($form_id = 1, $fieldId = null){
 	global $wpdb;
 	$table = $wpdb->prefix.'wpspf_form_fields';
 	if($fieldId!=null && $fieldId>0){
-		$sql = "SELECT * FROM $table WHERE form_id=1 AND id='$fieldId'";
+		$sql = "SELECT * FROM $table WHERE form_id=$form_id AND id='$fieldId'";
 		$formFields = $wpdb->get_results($sql);
 	}else{
-		$sql = "SELECT * FROM $table WHERE form_id=1 ORDER BY field_position asc";
+		$sql = "SELECT * FROM $table WHERE form_id=$form_id ORDER BY field_position asc";
 		$formFields = $wpdb->get_results($sql);
 	}	
 	return $formFields;
 }
 
 //function for get edit field attributes
-function wpspf_get_edit_field_attributes($fieldId){
+function wpspf_get_edit_field_attributes($formId, $fieldId){
 	if(!empty($fieldId)){
-		$editFields = wpspf_get_form_fields($fieldId);	
+		$editFields = wpspf_get_form_fields($formId, $fieldId);	
 	if(!empty($editFields)){
 		foreach($editFields as $editField){
 			$editFieldAttributes = json_decode($editField->field_other_attributes);	

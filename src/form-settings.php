@@ -1,15 +1,20 @@
+<?php
+$formId = (isset($_GET['form_id']) && intval($_GET['form_id']) > 0) ? intval($_GET['form_id']) : 1;
+//Delete field
+if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_GET['action']=='delete' && $_GET['page']=='wpspf-form-settings'){
+   if(wp_verify_nonce($_GET['wpspf_nonce'], 'wpspf_nonce_field_action')){
+        $fieldId = intval(trim($_GET['field']));
+        wpspf_delete_form_fields($fieldId);
+   }
+}
+?>
 <div class="wrap">
 <h1 class="wp-heading-inline"><?php echo esc_html_e( 'Form Fields Settings', 'wpspf_with_authorize.net' ); ?></h1>
 <?php
-//Delete field
-if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_GET['action']=='delete' && $_GET['page']=='wpspf-form-settings'){
-	$fieldId = intval(trim($_GET['field']));
-	wpspf_delete_form_fields($fieldId);
-}
 //Edit field
 if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_GET['action']=='edit' && $_GET['page']=='wpspf-form-settings'){
 	$fieldId = intval(trim($_GET['field']));
-	$editFields = wpspf_get_form_fields($fieldId);
+	$editFields = wpspf_get_form_fields($formId, $fieldId);
 	
 	if(!empty($editFields)){
 		foreach($editFields as $editField){
@@ -29,7 +34,7 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 			</div>
 		</div>
 	<div class="wpspf_other_field_container" id="wpspf_other_field_container">
-		<?php wpspf_get_edit_field_attributes($fieldId); ?>
+		<?php wpspf_get_edit_field_attributes($formId, $fieldId); ?>
 	</div>
 	<br style="clear: both;">
 	<input type="submit" name="wpspf_update_field" value="Update Field" class="btn button" id="wpspf_update_field">
@@ -70,7 +75,7 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 <?php } ?>
 <div class="wpspf_created_form_container">
 	<?php	
-	$formFields = wpspf_get_form_fields();	
+	$formFields = wpspf_get_form_fields($formId);	
 	$formHtml = '<div class="payment_box payment_method_authorizenet_lightweight">
         <form method="post" id="wpspf_form" name="payment" action="" enctype="multipart/form-data">            
         <table id="wc-authorizenet_lightweight-cc-form" class="wp-list-table widefat fixed striped wc-credit-card-form wc-payment-form"><thead><tr><th>Field Label</th><th>Field Name</th><th>Field View</th><th class="align-center">Position</th><th>Action</th></tr></thead><tbody>';
@@ -134,7 +139,7 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 			$formHtml .='</td><td class="align-center">'.$formField->field_position.'</td><td>';
             $formHtml .='<a href="?page=wpspf-form-settings&action=edit&field='.$formField->id.'" class="btn button wpspf_btn_edit">Edit</a>';
             if(!in_array($fieldAttributes->wpspf_input_field_name,wpspf_getDefaultFormFieldsList())){
-            	$formHtml .=' <a href="?page=wpspf-form-settings&action=delete&field='.$formField->id.'" onclick="return confirmDelete();" class="btn button wpspf_btn_delete">Delete</a>';
+            	$formHtml .=' <a href="?page=wpspf-form-settings&action=delete&field='.$formField->id.'&wpspf_nonce='.wp_create_nonce( 'wpspf_nonce_field_action' ).'" onclick="return confirmDelete();" class="btn button wpspf_btn_delete">Delete</a>';
             }else{
             	$formHtml .=' <a href="javascript:void();" title="This is not deleteable." class="btn button">Default</a>';
             }
@@ -178,6 +183,7 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 		            type : 'post',
 		            data : {
 		                action : 'wpspf_save_form_field',
+                        wpspf_nonce : '<?php echo wp_create_nonce( 'wpspf_nonce_field_action' ) ?>',
 		                field_detail : formData
 		            },
 		            success : function( response ) {
