@@ -245,8 +245,14 @@ function wpspf_save_form_field_ajax(){
     }
     if(!empty($_POST['action']) && !empty($_POST['field_detail'])){
 		$attributes = [];
+        $formId = null;
 		foreach($_POST['field_detail'] as $attribute){
-			$attributes[$attribute['name']] = $attribute['value'];
+            if($attribute['name'] === 'form_id'){
+                $formId = sanitize_text_field($attribute['value']);
+            }
+            else{
+                $attributes[sanitize_text_field($attribute['name'])] = sanitize_text_field($attribute['value']);
+            }
 		}
 		$attributes['wpspf_input_field_name'] = strtolower(str_replace(' ', '_', $attributes['wpspf_input_field_name']));
 		if(isset($attributes['wpspf_input_field_id']) && trim($attributes['wpspf_input_field_id']) != ''){
@@ -259,15 +265,15 @@ function wpspf_save_form_field_ajax(){
 		$result['status'] = 'success';
 		//check for already available field
 		$fieldName = $attributes['wpspf_input_field_name'];
-		$field = $wpdb->get_results("SELECT id FROM $table WHERE form_id='1' AND field_name='$fieldName'");
+		$field = $wpdb->get_results($wpdb->prepare("SELECT id FROM $table WHERE form_id='%s' AND field_name='%s'", $formId, $fieldName));
 		if(empty($field) && count($field)==0){
 			if(isset($attributes['wpspf_input_field_position']) && trim($attributes['wpspf_input_field_position']) != ''){
-				$data = array('field_name' => $attributes['wpspf_input_field_name'],'field_position' => $attributes['wpspf_input_field_position'], 'field_other_attributes' => $fieldJson);
-				$format = array('%s','%d','%s');
+				$data = array('form_id' => $formId, 'field_name' => $fieldName,'field_position' => $attributes['wpspf_input_field_position'], 'field_other_attributes' => $fieldJson);
+				$format = array('%d','%s','%d','%s');
 				$insert = $wpdb->insert($table,$data,$format);
 			}else{
-				$data = array('field_name' => $attributes['wpspf_input_field_name'],'field_other_attributes' => $fieldJson);
-				$format = array('%s','%s');
+				$data = array('form_id' => $formId,'field_name' => $fieldName,'field_other_attributes' => $fieldJson);
+				$format = array('%s','%s', '%s');
 				$insert = $wpdb->insert($table,$data,$format);
 			}
 			$result['msg'] =  '<p id="wpspf_success_msg">Form field added successfully.</p>';
@@ -1038,6 +1044,34 @@ function wpspf_save_service_payment_form_data_in_db($postData,$paymentStatus){
 		$formatMeta = array('%d','%s','%s');
 		$wpdb->insert($wpspfPaymentEntryMetaTable,$dataMeta,$formatMeta);
 	}
+}
+
+function wpspf_get_max_form_id(){
+    global $wpdb;
+    $table = $wpdb->prefix.'wpspf_form_fields';
+
+    $formId = $wpdb->get_results("SELECT MAX(form_id) as form_id FROM $table");
+    if($formId && isset($formId[0])){
+        return $formId[0]->form_id;
+    }
+    //fallback; no form_id in table
+    return 1;
+}
+
+function wpspf_add_form($form_name){
+    global $wpdb;
+    $formsList = get_option('wpspf_forms_list');
+    $formId = intval(wpspf_get_max_form_id())+1;
+    if(empty($form_name)) $form_name = 'Form '.$formId;
+    $table = $wpdb->prefix.'wpspf_form_fields';
+    $sql = wpspf_get_default_form_fields_insert_statement($table, $formId);
+    $wpdb->get_results($sql);
+    if(in_array($form_name, $formsList)){
+        $form_name .= '-1';
+    }
+    $formsList[$formId] = $form_name;
+    update_option('wpspf_forms_list', $formsList);
+    return $formId;
 }
 
 //donate button

@@ -1,18 +1,73 @@
 <?php
-$formId = (isset($_GET['form_id']) && intval($_GET['form_id']) > 0) ? intval($_GET['form_id']) : 1;
+$currentAction = (isset($_GET['action']) || isset($_POST['action'])) ? (isset($_GET['action'])) ? $_GET['action'] : $_POST['action'] : 'select';
+
+$formId = (isset($_GET['form_id']) && intval($_GET['form_id']) > 0)  ? intval(trim($_GET['form_id'])) : null;
+
 //Delete field
-if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_GET['action']=='delete' && $_GET['page']=='wpspf-form-settings'){
-   if(wp_verify_nonce($_GET['wpspf_nonce'], 'wpspf_nonce_field_action')){
+if($currentAction==='delete' && isset($_GET['page']) && isset($_GET['field'])){
+    check_admin_referer('wpspf_delete_field', 'wpspf_nonce');
+    if(current_user_can('manage_options')){
         $fieldId = intval(trim($_GET['field']));
         wpspf_delete_form_fields($fieldId);
-   }
+    }
 }
+if($currentAction==='add-form') {
+    if(wp_verify_nonce($_POST['wpspf_nonce'], 'wpspf_nonce_form_action')){
+        if(current_user_can('manage_options')){
+            $name = (isset($_POST['wpspf_form_name'])) ? sanitize_text_field($_POST['wpspf_form_name']) : '';
+            $formId = wpspf_add_form($name);
+        }
+    }
+}
+$formsList = get_option('wpspf_forms_list');
 ?>
 <div class="wrap">
-<h1 class="wp-heading-inline"><?php echo esc_html_e( 'Form Fields Settings', 'wpspf_with_authorize.net' ); ?></h1>
+<h1 class="wp-heading-inline"><?php echo esc_html_e( 'Form Settings', 'wpspf_with_authorize.net' ); ?></h1><a href="javascript:void(0);" id="wpspf_add_new_field" class="page-title-action">Add New Field</a>
+    <div id="wpspf_select_form_wrap">
+        <form name="wpspf_select_form" method="get" action="<?php echo get_admin_url() .'admin.php?page=wpspf-form-settings' ?>">
+            <label>Select a form to edit:</label>
+            <select name="form_id"><?php
+    $idMatched = false;
+    foreach($formsList as $key => $value){
+        if ($key == $formId) {
+            $selected = ' SELECTED';
+            $idMatched = true;
+        }
+        else{
+            $selected = '';
+        }
+        echo '<option value="'.$key.'"'.$selected.'>'.$value.'</option>';
+    }
+    ?>
+            </select>
+<?php
+    if(!$idMatched){
+        //set $formId to first item in the select list
+        $formId = array_key_first($formsList);
+    }
+?>
+            <input type="hidden" name="action" value="select">
+            <input type="hidden" name="page" value="wpspf-form-settings">
+            <input type="submit" value="Select" class="btn button">
+            or <a href="" id="wpspf_add_new_form">add a new form</a>.
+        </form>
+    </div>
+    <div id="wpspf_new_form_wrap" class="hidden">
+        <h2>Add New Form</h2>
+        <div id="wpspf_new_form">
+            <form name="wpspf_new_form" method="post" action="<?php echo get_admin_url() .'admin.php?page=wpspf-form-settings' ?>"><label>Form Name</label>
+                <input type="text" name="wpspf_form_name" id="wpspf_form_name" class="regular-text">
+                <p class="description">Once the form is created you'll be able to update the default field attributes and add additional fields.</p>
+                <?php echo wp_nonce_field('wpspf_nonce_form_action', 'wpspf_nonce'); ?>
+                <input type="hidden" name="action" value="add-form">
+                <span><a class="btn button" id="wpspf_cancel_new_form">Cancel</a></span>
+                    <div class="wpspf-form-action"><input type="submit" name="add_form" id="save_menu_header" class="button button-primary button-large" value="Add Form"></div>
+            </form>
+        </div>
+    </div>
 <?php
 //Edit field
-if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_GET['action']=='edit' && $_GET['page']=='wpspf-form-settings'){
+if($currentAction==='edit' && isset($_GET['page']) && isset($_GET['field']) && $_GET['page']=='wpspf-form-settings'){
 	$fieldId = intval(trim($_GET['field']));
 	$editFields = wpspf_get_form_fields($formId, $fieldId);
 	
@@ -26,9 +81,10 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 	<form name="wpspf_form_setting_form" id="wpspf_form_setting_form" method="post" enctype="multipart/form-data">
 		<div class="row">
 			<input type="hidden" name="field_id" value="<?php echo $fieldId; ?>">
+			<input type="hidden" name="form_id" value="<?php echo $formId; ?>">
 			<div class="col">Selected Field Type</div>
 			<div class="col">
-				<select name="wpspf_field_type" class="field" id="wpspf_field_type" required="required">
+				<select name="wpspf_field_type" class="field" id="wpspf_field_type" required>
 					<option value="<?php echo $editFieldAttributes->wpspf_field_type; ?>"><?php echo $editFieldAttributes->wpspf_field_type; ?></option>
 				</select>
 			</div>
@@ -38,15 +94,15 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 	</div>
 	<br style="clear: both;">
 	<input type="submit" name="wpspf_update_field" value="Update Field" class="btn button" id="wpspf_update_field">
-	<a href="<?php echo admin_url(); ?>admin.php?page=wpspf-form-settings" class="btn button">Cancel</a>
+	<a href="<?php echo admin_url(); ?>admin.php?page=wpspf-form-settings&form_id=<?php echo $formId ?>" class="btn button">Cancel</a>
 	<div id="wpspf_response"></div>	
 	</form>
 </div>
 <?php }}}else{ ?>
-<a href="javascript:void(0);" id="wpspf_add_new_field" class="page-title-action">Add New Field</a>
 <hr class="wp-header-end">
 <div class="wpspf_form_setting" id="wpspf_form_setting" style="display: none;">
 	<form name="wpspf_form_setting_form" id="wpspf_form_setting_form" method="post" enctype="multipart/form-data">
+		<input type="hidden" name="form_id" value="<?php echo $formId; ?>">
 		<div class="row">
 			<div class="col">Select Field Type</div>
 			<div class="col">
@@ -68,7 +124,7 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 	<div class="wpspf_other_field_container" id="wpspf_other_field_container"></div>
 	<br style="clear: both;">
 	<input type="submit" name="wpspf_save_new_field" value="Save New Field" class="btn button" id="wpspf_save_new_field" style="display: none;">
-	<a href="<?php echo admin_url(); ?>admin.php?page=wpspf-form-settings" class="btn button">Cancel</a>
+	<a href="<?php echo admin_url(); ?>admin.php?page=wpspf-form-settings" id="wpspf_cancel_add_field" class="btn button">Cancel</a>
 	<div id="wpspf_response"></div>	
 	</form>
 </div>
@@ -137,9 +193,13 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 					break;
 			}
 			$formHtml .='</td><td class="align-center">'.$formField->field_position.'</td><td>';
-            $formHtml .='<a href="?page=wpspf-form-settings&action=edit&field='.$formField->id.'" class="btn button wpspf_btn_edit">Edit</a>';
+            $formHtml .='<a href="?page=wpspf-form-settings&action=edit&form_id='.$formId.'&field='.$formField->id.'" class="btn button wpspf_btn_edit">Edit</a>';
+            
+            $deleteUrl = wp_nonce_url(admin_url('admin.php?page=wpspf-form-settings'), 'wpspf_delete_field', 'wpspf_nonce');
+            
             if(!in_array($fieldAttributes->wpspf_input_field_name,wpspf_getDefaultFormFieldsList())){
-            	$formHtml .=' <a href="?page=wpspf-form-settings&action=delete&field='.$formField->id.'&wpspf_nonce='.wp_create_nonce( 'wpspf_nonce_field_action' ).'" onclick="return confirmDelete();" class="btn button wpspf_btn_delete">Delete</a>';
+                $formHtml .= ' <a href="'.$deleteUrl.'&field='.$formField->id.'&form_id='.$formId.'&action=delete" onclick="return confirmDelete(\''.$fieldAttributes->wpspf_input_field_label.'\');" class="btn button wpspf_btn_delete">Delete</a>';
+            	//$formHtml .=' <a href="?page=wpspf-form-settings&action=delete&field='.$formField->id.'&wpspf_nonce='.wp_create_nonce( 'wpspf_nonce_field_action' ).'" onclick="return confirmDelete();" class="btn button wpspf_btn_delete">Delete</a>';
             }else{
             	$formHtml .=' <a href="javascript:void();" title="This is not deleteable." class="btn button">Default</a>';
             }
@@ -154,7 +214,11 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 <script type="text/javascript">
 	jQuery(document).ready(function(){
 		var admin_ajax_url = '<?php echo admin_url('admin-ajax.php'); ?>';		
-		jQuery('#wpspf_add_new_field').on('click',function(){
+		jQuery('#wpspf_add_new_field').on('click',function(evt){
+            evt.preventDefault();
+            if(jQuery(this).hasClass('disabled')){
+                return;
+            }
 			jQuery('#wpspf_form_setting').toggle();
 		});
 
@@ -191,7 +255,7 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 		            	if(res.status=='success'){
 		            		jQuery('#wpspf_response').html(res.msg);
 		            		setTimeout(function(){
-		            			var url = '<?php echo admin_url(); ?>'+'admin.php?page=wpspf-form-settings';
+		            			var url = '<?php echo admin_url(); ?>'+'admin.php?page=wpspf-form-settings&form_id=' + jQuery('input[name="form_id"]').val();
 		            			window.location.href=url;
 		            		},1000);		            		
 		            	}else{
@@ -202,8 +266,8 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 	            });
 	    });
 	});
-	function confirmDelete(){
-		return confirm('Are you sure?');
+	function confirmDelete(fieldLabel){
+		return confirm('Permanently delete the field "' + fieldLabel + '"?');
 	}
 </script>
 <style type="text/css">
@@ -252,4 +316,31 @@ if(isset($_GET['action']) && isset($_GET['page']) && isset($_GET['field']) && $_
 	    color: #32373c;
 	    padding: 5px;
 	}
+    #wpspf_new_form_wrap p.submit{
+        margin: 0;
+    }
+    #wpspf_new_form, #wpspf_select_form_wrap {
+        padding: 10px;
+        overflow: hidden;
+        background: #fbfbfb;
+        border: 1px solid #ccd0d4;
+        box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    }
+    #wpspf_select_form_wrap{
+        margin: 16px 0;
+    }
+    #wpspf_select_form_wrap label {
+        display: inline-block;
+        margin-right: 3px;
+        vertical-align: middle;
+    }
+    .wpspf-form-action {
+        text-align: right;
+        float: right;
+    }
+    .wrap .page-title-action.disabled{
+        color: gray;
+        border-color: gray;
+        cursor: not-allowed;
+    }
 </style>

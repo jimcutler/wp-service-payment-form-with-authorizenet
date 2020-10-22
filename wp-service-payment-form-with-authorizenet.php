@@ -129,7 +129,7 @@ function wpspf_plugin_create_menu() {
     add_menu_page('Service Payment', 'Service Payment', 'administrator','wpspf-plugin-settings-page', 'wpspf_plugin_settings_page', 'dashicons-forms'  );
     add_action( 'admin_init', 'register_wpspf_plugin_settings' );
     add_submenu_page( 'wpspf-plugin-settings-page', 'All Payments', 'All Payments', 'manage_options', 'wpspf-all-payments', 'wpspf_all_payments');
-    add_submenu_page( 'wpspf-plugin-settings-page', 'Form Fields Settings', 'Form Fields Settings', 'manage_options', 'wpspf-form-settings', 'wpspf_form_setings');
+    add_submenu_page( 'wpspf-plugin-settings-page', 'Forms', 'Forms', 'manage_options', 'wpspf-form-settings', 'wpspf_form_setings');
     add_submenu_page( 'wpspf-plugin-settings-page', 'Settings Document', 'Settings Document', 'manage_options', 'wpspf-settings-document', 'wpspf_setings_document');
 }
 
@@ -152,6 +152,22 @@ function wpspf_admin_enqueue_scripts() {
     wp_enqueue_script('wpspf_service_admin', plugins_url('js/wpspf-service-admin.js', __FILE__), array('jquery'), '', true);
 }
 add_action( 'admin_enqueue_scripts', 'wpspf_admin_enqueue_scripts' );
+
+function wpspf_init_forms_list(){
+    global $wpdb;
+    if(get_option('wpspf_forms_list')===false){
+        $table = $wpdb->prefix.'wpspf_form_fields';
+        $formsList = [];
+        $results = $wpdb->get_results("SELECT DISTINCT form_id from $table");
+        foreach($results as $formData){
+            $formsList[$formData->form_id] = 'Form '.$formData->form_id;
+        }
+        if(count($formsList)>0){
+            update_option('wpspf_forms_list', $formsList);
+        }
+    }
+}
+add_action( 'plugins_loaded', 'wpspf_init_forms_list' );
 
 //form setting
 function wpspf_form_setings(){
