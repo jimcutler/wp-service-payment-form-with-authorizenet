@@ -154,18 +154,7 @@ function wpspf_admin_enqueue_scripts() {
 add_action( 'admin_enqueue_scripts', 'wpspf_admin_enqueue_scripts' );
 
 function wpspf_init_forms_list(){
-    global $wpdb;
-    if(get_option('wpspf_forms_list')===false){
-        $table = $wpdb->prefix.'wpspf_form_fields';
-        $formsList = [];
-        $results = $wpdb->get_results("SELECT DISTINCT form_id from $table");
-        foreach($results as $formData){
-            $formsList[$formData->form_id] = 'Form '.$formData->form_id;
-        }
-        if(count($formsList)>0){
-            update_option('wpspf_forms_list', $formsList);
-        }
-    }
+    wpspf_update_form_list();
 }
 add_action( 'plugins_loaded', 'wpspf_init_forms_list' );
 
