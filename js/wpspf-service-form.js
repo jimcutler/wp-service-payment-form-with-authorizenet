@@ -86,6 +86,7 @@ jQuery('#wpspf_form').on('submit',function(event){
                   if(res.status=='success'){
                     jQuery('#wpspf_submit_btn').hide();
                     jQuery('#wpspf_form_container').html(blankHtml);
+                    window.scrollTo(0,0);
                   }else{
                     jQuery('#wpspf_submit_btn').show();
                   }                  

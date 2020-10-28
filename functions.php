@@ -1,9 +1,4 @@
 <?php
-function load_scripts(){
-    wp_enqueue_script('wpspf-service-form', plugin_dir_url(__FILE__) . 'js/wpspf-service-form.js');
-    wp_localize_script('wpspf-service-form', 'wpspf_vars', array('wpspfnet_enable_check' => get_option('wpspfnet_enable_check') ));
-}
-
 function wpspf_get_form_field_ajax(){	
 	if(!empty($_POST['action']) && !empty($_POST['field_type']) && $_POST['action']==='wpspf_get_form_field'){
 		$choice = $_POST['field_type'];
@@ -629,6 +624,7 @@ function wpspf_get_dynamic_form_field_view($fieldAttributes){
     $fieldHtml .='</th>';
     $maxLength = (property_exists($fieldAttributes, 'wpspf_input_field_maxlength') && trim($fieldAttributes->wpspf_input_field_maxlength) !== '') ? 'maxlength="' . intval($fieldAttributes->wpspf_input_field_maxlength) . '"': '' ;
 	$case = $fieldAttributes->wpspf_field_type;
+    $required = ($fieldAttributes->wpspf_input_field_is_required) ? ' required' : '';
 			switch ($case) {
 				case 'checkbox':
 					$fieldHtml .='<td>';	                
@@ -636,7 +632,7 @@ function wpspf_get_dynamic_form_field_view($fieldAttributes){
 	                if(!empty($options)){
 	                	foreach ($options as $option) {
 	                		$option = trim($option);
-	                   		$fieldHtml .='<input type="checkbox" name="'.$fieldAttributes->wpspf_input_field_name.'" class="'.$fieldAttributes->wpspf_input_field_class.'" value="'.$option.'"><span class="wpspf_checkbox">'.$option.' </span>';
+	                   		$fieldHtml .='<div class="wpspf_input_wrap"><input type="checkbox" name="'.$fieldAttributes->wpspf_input_field_name.'" class="'.$fieldAttributes->wpspf_input_field_class.'" value="'.$option.'"><label class="wpspf_checkbox">'.$option.' </label></div>';
 	                	}
 	                } 
 	                $fieldHtml .='</td>';
@@ -647,24 +643,24 @@ function wpspf_get_dynamic_form_field_view($fieldAttributes){
 	                if(!empty($options)){
 	                	foreach ($options as $option) {
 	                		$option = trim($option);
-	                   		$fieldHtml .='<input type="radio" name="'.$fieldAttributes->wpspf_input_field_name.'" class="'.$fieldAttributes->wpspf_input_field_class.'" value="'.$option.'"><span class="wpspf_radio">'.$option.' </span>';
+	                   		$fieldHtml .='<div class="wpspf_input_wrap"><input type="radio" name="'.$fieldAttributes->wpspf_input_field_name.'" class="'.$fieldAttributes->wpspf_input_field_class.'" value="'.$option.'"><label class="wpspf_radio" for="'.$fieldAttributes->wpspf_input_field_name.'">'.$option.' </label></div>';
 	                	}
 	                } 
 	                $fieldHtml .='</td>';					
 					break;
 				case 'file':
 					$fieldHtml .='<td>';
-	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" required="'.$fieldAttributes->wpspf_input_field_is_required.'">';      
+	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'"'.$required.'>';      
 	                $fieldHtml .='</td>';
 					break;
 				case 'textarea':
 					$fieldHtml .='<td>';
-	                $fieldHtml .='<textarea name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'" required="'.$fieldAttributes->wpspf_input_field_is_required.'"'.$maxLength.'>'.$fieldAttributes->wpspf_input_field_default_value.'</textarea>';
+	                $fieldHtml .='<textarea name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'"'. $required . $maxLength.'>'.$fieldAttributes->wpspf_input_field_default_value.'</textarea>';
 	                $fieldHtml .='</td>';
 					break;
 				case 'select':
 					$fieldHtml .='<td>';
-	                $fieldHtml .='<select name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" required="'.$fieldAttributes->wpspf_input_field_is_required.'">';
+	                $fieldHtml .='<select name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'"'.$required.'>';
 	                $options = explode("|", $fieldAttributes->wpspf_input_field_options);
 	                   $fieldHtml .='<option value="">Select</option>';
 	                if(!empty($options)){
@@ -677,7 +673,7 @@ function wpspf_get_dynamic_form_field_view($fieldAttributes){
 					break;
 				case 'password':
 					$fieldHtml .='<td>';
-	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'" required="'.$fieldAttributes->wpspf_input_field_is_required.'">';    
+	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'"'.$required.'>';    
 	                $fieldHtml .='</td>';
 					break;
 					case 'label':
@@ -687,12 +683,12 @@ function wpspf_get_dynamic_form_field_view($fieldAttributes){
 						break;
 				case 'date':
 					$fieldHtml .='<td>';
-	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'" required="'.$fieldAttributes->wpspf_input_field_is_required.'">';    
+	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'"'.$required.'>';    
 	                $fieldHtml .='</td>';
 					break;
 				default:
 					$fieldHtml .='<td>';
-	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'" value="'.$fieldAttributes->wpspf_input_field_default_value.'" required="'.$fieldAttributes->wpspf_input_field_is_required.'"'.$maxLength.'>';
+	                $fieldHtml .='<input type="'.$case.'" name="'.$fieldAttributes->wpspf_input_field_name.'" id="'.$fieldAttributes->wpspf_input_field_id.'" class="form-field '.$fieldAttributes->wpspf_input_field_class.'" placeholder="'.$fieldAttributes->wpspf_input_field_placeholder.'" value="'.$fieldAttributes->wpspf_input_field_default_value.'"' . $required . $maxLength. '>';
 	                $fieldHtml .='</td>';					
 					break;
 			}
@@ -1021,7 +1017,6 @@ function wpspf_service_payment_request_ajax(){
 }
 add_action('wp_ajax_wpspf_service_payment_request','wpspf_service_payment_request_ajax');
 add_action('wp_ajax_nopriv_wpspf_service_payment_request','wpspf_service_payment_request_ajax');
-add_action('wp_enqueue_scripts', 'load_scripts');
 
 //save payment form data
 function wpspf_save_service_payment_form_data_in_db($postData,$paymentStatus){

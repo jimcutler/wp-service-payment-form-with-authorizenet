@@ -135,7 +135,8 @@ function wpspf_plugin_create_menu() {
 
 //add js file
 function wpspf_adding_scripts() { 
-    wp_enqueue_script('wpspf_service_form_script', plugins_url('js/wpspf-service-form.js', __FILE__), array('jquery'),'', true);     
+    wp_enqueue_script('wpspf_service_form_script', plugins_url('js/wpspf-service-form.js', __FILE__), array('jquery'),'', true);   
+    wp_localize_script('wpspf_service_form_script', 'wpspf_vars', array('wpspfnet_enable_check' => get_option('wpspfnet_enable_check') ));  
     wp_enqueue_script('wpspf_service_form_script');
 }  
 add_action( 'wp_enqueue_scripts', 'wpspf_adding_scripts' );

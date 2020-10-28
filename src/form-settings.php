@@ -110,7 +110,7 @@ $formsList = get_option('wpspf_forms_list');
         echo $errorHtml;
     }   
 ?>
-<div id="wpspf_form_actions_wrap"><h2><?php echo $formName; ?></h2>
+<div id="wpspf_form_actions_wrap"><h2 class="wpspf_heading_inline"><?php echo $formName; ?></h2><?php if($formId) echo ' <span>Shortcode for this form: <strong>[wpspf-paymentform form_id='.$formId.']</strong></span>'; ?>
     <form id="wpspf_form_actions" method="post" action="<?php echo get_admin_url() .'admin.php?page=wpspf-form-settings' ?>">
         <?php echo wp_nonce_field('wpspf_nonce_form_action', 'wpspf_nonce'); ?>
         <input type="hidden" name="form_id" value="<?php echo $formId; ?>">
@@ -381,5 +381,9 @@ if($currentAction==='edit' && isset($_GET['page']) && isset($_GET['field']) && $
     #wpspf_form a.wpspf_btn_edit.button.disabled,
     #wpspf_form a.wpspf_btn_default.button.disabled {
         cursor: not-allowed;
+    }
+    .wpspf_heading_inline {
+        display: inline-block;
+        margin-right: 20px;
     }
 </style>

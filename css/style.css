@@ -33,3 +33,8 @@
   100% { transform: rotate(360deg); }
 }
 .wpspf_loader_text{ float:left; }
+
+.wpspf_input_wrap{
+    display: inline-block;
+    margin-right: 10px;
+}

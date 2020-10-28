@@ -58,3 +58,9 @@ Fix table create issue during activation of plugin.
 Add enable/disable send customer receipt features.
 Add feature to accept customer ID from customers.
 Add settings document page.
+
+** V 2.2.0 **
+Add ACH Payment Method.
+
+** V 2.2.1 **
+Fixed Charge twice issue.
