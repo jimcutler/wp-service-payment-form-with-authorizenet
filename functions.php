@@ -617,7 +617,8 @@ function wpspf_delete_form_fields($fieldId){
 //front end dynamic form field view
 function wpspf_get_dynamic_form_field_view($fieldAttributes){
 	$fieldHtml = '';
-	$fieldHtml .='<tr><th>'.$fieldAttributes->wpspf_input_field_label;
+	$fieldLabel = ($fieldAttributes->wpspf_field_type !== 'hidden') ? $fieldAttributes->wpspf_input_field_label : ''; 
+	$fieldHtml .='<tr><th>'.$fieldLabel;
     if($fieldAttributes->wpspf_input_field_is_required==='true'){
     	$fieldHtml .='<span class="required">*</span>';
     }                
@@ -1054,6 +1055,24 @@ function wpspf_get_max_form_id(){
     }
     //fallback; no form_id in table
     return 0;
+}
+
+function wpspf_get_min_form_id(){
+    global $wpdb;
+    $table = $wpdb->prefix.'wpspf_form_fields';
+
+    $formId = $wpdb->get_results("SELECT MIN(form_id) as form_id FROM $table");
+    if($formId && isset($formId[0])){
+        return $formId[0]->form_id;
+    }
+    //no forms saved
+    return false;
+}
+
+function wpspf_get_form_name($formId){
+    $formsList = get_option('wpspf_forms_list');
+    $formName = $formsList[$formId];
+    return $formName;
 }
 
 function wpspf_add_form($formName, $parentFormId = null){
