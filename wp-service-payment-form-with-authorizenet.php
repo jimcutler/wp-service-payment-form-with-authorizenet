@@ -155,7 +155,7 @@ function wpspf_admin_enqueue_scripts() {
 add_action( 'admin_enqueue_scripts', 'wpspf_admin_enqueue_scripts' );
 
 function wpspf_init_forms_list(){
-    wpspf_update_form_list();
+    wpspf_migrate_form_settings();
 }
 add_action( 'plugins_loaded', 'wpspf_init_forms_list' );
 

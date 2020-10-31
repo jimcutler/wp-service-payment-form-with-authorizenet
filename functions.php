@@ -1070,16 +1070,17 @@ function wpspf_get_min_form_id(){
 }
 
 function wpspf_get_form_name($formId){
-    $formsList = get_option('wpspf_forms_list');
-    $formName = $formsList[$formId];
+    $formsList = get_option('wpspf_form_settings');
+    $formName = $formsList[$formId]['name'];
     return $formName;
 }
 
-function wpspf_add_form($formName, $parentFormId = null){
+function wpspf_add_form($fields, $parentFormId = false){
     global $wpdb;
     $formId = intval(wpspf_get_max_form_id())+1;
     $table = $wpdb->prefix . 'wpspf_form_fields';
     $sql = '';
+
     if(!empty($parentFormId)){
         $sql = $wpdb->prepare("INSERT INTO $table (form_id, field_name, field_position, field_other_attributes)
         SELECT $formId, field_name, field_position, field_other_attributes 
@@ -1090,56 +1091,91 @@ function wpspf_add_form($formName, $parentFormId = null){
         $sql = wpspf_get_default_form_fields_insert_statement($table, $formId);
     }
     $wpdb->get_results($sql);
-    $formName = wpspf_get_unique_form_name($formId, $formName);
-    wpspf_update_form_list($formId, $formName);
+    $formName = wpspf_get_unique_form_name($formId, (isset($fields['name'])) ? $fields['name'] : '');
+    wpspf_update_form_settings($formId, $fields);
     return $formId;
 }
 
-function wpspf_get_unique_form_name($formId, $formName, $formsList = false){
-    global $wpdb;
-    $formsList = (!$formsList) ? get_option('wpspf_forms_list') : $formsList;
-    $newFormName = $formName = (empty($formName)) ? 'Form ' . $formId : $formName;
-    $table = $wpdb->prefix . 'wpspf_form_fields';
+function wpspf_get_unique_form_name($formId, $formName = false, $formsSettings = false){
+    if(!$formsSettings) $formsSettings = get_option('wpspf_form_settings');
+    if(!$formName) $formName = 'Form ' . $formId;
+    $names = [];
+    $newName = $formName;
     $ctr = 0;
-    //check for duplicate name
-    while(in_array($newFormName, $formsList)){
-        $newFormName = ($ctr === 0) ? $formName . ' Copy' : $formName . ' Copy ' . $ctr;
+    foreach ($formsSettings as $value){
+        array_push($names, $value['name']);
+    }
+    while(in_array($newName, $names)){
+        $newFormName = ($ctr === 0) ? $formName . ' Copy' : $formName . ' Copy ' . $ctr;        
         $ctr++;
     }
-    return $newFormName;
+    return $newName;
 }
 
-function wpspf_update_form_list($formId = null, $formName = null){
+function wpspf_update_form_settings($formId, $fields){
+    $settings = get_option('wpspf_form_settings');
+    if(!$settings){
+        $settings = [];
+    }
+    $settings[$formId]['id'] = $formId;
+    $settings[$formId]['name'] = $fields['name'];
+    $settings[$formId]['title'] = $fields['title'];
+    $settings[$formId]['submit_button_label'] = $fields['submit_button_label'];
+    $settings[$formId]['email_customer_receipt'] = $fields['email_customer_receipt'];
+    $settings[$formId]['email_receipt_heading'] = $fields['email_receipt_heading'];
+    $settings[$formId]['email_receipt_footer'] = $fields['email_receipt_footer'];
+    $settings[$formId]['success_message'] = $fields['success_message'];
+    $settings[$formId]['generate_customer_id'] = $fields['generate_customer_id'];
+    update_option('wpspf_form_settings', $settings);
+}
+
+function wpspf_migrate_form_settings($deleteLegacyOptions = false){
     global $wpdb;
-    $table = $wpdb->prefix . 'wpspf_form_fields';
-    $formsList = get_option('wpspf_forms_list');
-    $formIds = $wpdb->get_results("SELECT DISTINCT form_id FROM $table");
-    $formsListUpdate = [];
-    //iterate forms list to clean-up out of synch entries
-    foreach($formIds as $value){
-        $id = $value->form_id;
-        if(array_key_exists($id, $formsList)){
-            $formsListUpdate[$id] = $formsList[$id];
+    $settings = get_option('wpspf_form_settings');
+    if(!$settings){
+        $table = $wpdb->prefix . 'wpspf_form_fields';
+        $formsList = [];
+        $formIds = $wpdb->get_results("SELECT DISTINCT form_id FROM $table");
+        $formTitle = get_option('wpspf_paymentheading');
+        $submitButtonLabel = get_option('wpspf_paymentBtnLabel');
+        $emailReceipt = get_option('wpspf_x_email_customer');
+        $emailReceiptHeadingText = get_option('wpspf_x_header_email_receipt');
+        $emailReceiptFooterText = get_option('wpspf_x_footer_email_receipt');
+
+        foreach($formIds as $value){
+            $id = $value->form_id;
+            $formsList[$id]['id'] = $id;
+            $name = wpspf_get_unique_form_name($id, 'Form ' . $id, $formsList);
+            $formsList[$id]['name'] = $name;
+            $formsList[$id]['title'] = ($formTitle) ? $formTitle : 'Payment Information';
+            $formsList[$id]['submit_button_label'] = ($submitButtonLabel) ? $submitButtonLabel : 'Submit';
+            $formsList[$id]['email_customer_receipt'] = ($emailReceipt === 0) ? 0 : 1;
+            $formsList[$id]['email_receipt_heading'] = ($emailReceiptHeadingText) ? $emailReceiptHeadingText : '';
+            $formsList[$id]['email_receipt_footer'] = ($emailReceiptFooterText) ? $emailReceiptFooterText : '';
+            $formsList[$id]['success_message'] = 'Thank you {customer_first_name}, your payment has been processed.';
+            $formsList[$id]['generate_customer_id'] = 1;
         }
-        else {
-            $newValue = wpspf_get_unique_form_name($id, 'Form ' . $id, $formsListUpdate);
-            $formsListUpdate[$id] = $newValue;
+        update_option('wpspf_form_settings', $formsList);
+        if($deleteLegacyOptions){
+            delete_option('wpspf_paymentheading');
+            delete_option('wpspf_paymentBtnLabel');
+            delete_option('wpspf_x_email_customer');
+            delete_option('wpspf_x_header_email_receipt');
+            delete_option('wpspf_x_footer_email_receipt');
         }
     }
-    if(!empty($formId)){
-        if(empty($formName)){
-            $formName = wpspf_get_unique_form_name($formId, 'Form '.$formId, $formsList);
-        }
-        $formsListUpdate[$formId] = $formName;
-    }
-    update_option('wpspf_forms_list', $formsListUpdate);
 }
 
 function wpspf_delete_form($formId){
     global $wpdb;
     $table = $wpdb->prefix . 'wpspf_form_fields';
     $wpdb->delete($table, array('form_id' => $formId));
-    wpspf_update_form_list();
+    $settings = get_option('wpspf_form_settings');
+    if(!$settings){
+        return;
+    }
+    unset($settings[$formId]);
+    update_option('wpspf_form_settings', $settings);
 }
 
 //donate button
