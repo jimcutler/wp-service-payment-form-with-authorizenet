@@ -698,7 +698,7 @@ function wpspf_get_dynamic_form_field_view($fieldAttributes){
 }
 
 //payment gateway fields if enabled
-function wpspf_get_paymentgateway_field_view(){
+function wpspf_get_paymentgateway_field_view($formSettings){
 	$fieldHtml = '';
 	if(get_option('wpspfnet_enable')==1){
 		$fieldHtml .= '<tr><th>Payment Method<span class="required">*</span></th><td><select name="paymentmethod" id="paymentmethod" required="required" class="form-field">
@@ -792,11 +792,10 @@ function wpspf_get_paymentgateway_field_view(){
 
     $fieldHtml .='<tr id="wpspf_submit_btn" style="display: none"><td></td><td>';
     $fieldHtml .=wp_nonce_field('wpspf_nonce_billpay_action', 'wpspf_billpay_nonce', true, false);
-    if (trim(get_option( 'wpspf_paymentBtnLabel' ))!='') {
-		$wpspf_paymentBtnLabel = get_option( 'wpspf_paymentBtnLabel' );
-	} else {
-    	$wpspf_paymentBtnLabel ='Pay Your Bill';
-    }
+    $wpspf_paymentBtnLabel ='Submit';
+    if (isset($formSettings['submit_button_label']) && trim($formSettings['submit_button_label']) !== '') {
+		$wpspf_paymentBtnLabel = esc_attr(trim($formSettings['submit_button_label']));
+	}
     $fieldHtml .='<input type="submit" name="wpspf_payment" id="wpspf_payment" class="btn button form-field" value="'.$wpspf_paymentBtnLabel.'"></td></tr>';
     $fieldHtml .='<tr id="wpspf_submit_btn_loader" style="display: none"><td></td><td><div class="wpspf_loader_text">Please Wait... </div><div class="wpspf_loader"></div></td></tr>';
             
@@ -835,6 +834,14 @@ function wpspf_service_payment_request_ajax(){
     if(wp_verify_nonce($postData['wpspf_billpay_nonce'], 'wpspf_nonce_billpay_action')){
         //check for google captcha
         if(isset($postData['spGoogleCaptchaRes']) && trim($postData['spGoogleCaptchaRes'])!='' && $postData['spGoogleCaptchaRes']==$postData['g-recaptcha-response']){
+            $formId = (isset($postData['form_id'])) ? $postData['form_id'] : false;
+            if(!$formId){
+                wp_send_json_error('Missing form ID.', 400);
+            }
+            $formSettings = wpspf_get_form_settings($formId);
+            if(!$formSettings){
+                wp_send_json_error('Form Settings not found.', 400);
+            }
         			// Testing, is it a real transaction
 				    $environment = ( intval(get_option( 'wpspf_transactionmode' ))==1 ) ? 'TRUE' : 'FALSE';
 				    // Decide which URL to post to
@@ -862,31 +869,30 @@ function wpspf_service_payment_request_ajax(){
 				        $customer_email = '';
 				    }
 
+                    $x_cust_id = '';
 				    if(isset($postData['wpspf_x_cust_id']) &&  trim(sanitize_text_field($postData['wpspf_x_cust_id']))!=''){
 				        $x_cust_id = sanitize_text_field($postData['wpspf_x_cust_id']);
-				    }else{
+				    }elseif (isset($formSettings['generate_customer_id']) && intval($formSettings['generate_customer_id']) === 1){
 				        $x_cust_id = mt_rand();
 				    }				    
 
 				    //Customer email receipt start
-				    $x_email_customer = ( intval(get_option( 'wpspf_x_email_customer' ))==1 ) ? 'TRUE' : 'FALSE';
-				    if(trim(sanitize_text_field(get_option( 'wpspf_x_header_email_receipt' )))!=''){
-				        $x_header_email_receipt = sanitize_text_field(get_option( 'wpspf_x_header_email_receipt' ));
-				    }else{
-				        $x_header_email_receipt = '';
+				    $x_email_customer = ( isset($formSettings['email_customer_receipt']) && intval($formSettings['email_customer_receipt'] ) === 1 ) ? 'TRUE' : 'FALSE';
+				    $x_header_email_receipt = '';
+				    $x_footer_email_receipt = '';
+            if($x_email_customer === 'TRUE'){
+				    if(isset($formSettings['email_receipt_heading'])){
+				        $x_header_email_receipt = trim(sanitize_text_field($formSettings['email_receipt_heading']));
 				    }
-				    if(trim(sanitize_text_field(get_option( 'wpspf_x_footer_email_receipt' )))!=''){
-				        $x_footer_email_receipt = sanitize_text_field(get_option( 'wpspf_x_footer_email_receipt' ));
-				    }else{
-				        $x_footer_email_receipt = '';
+				    if(isset($formSettings['email_receipt_footer'])){
+				        $x_footer_email_receipt = trim(sanitize_text_field($formSettings['email_receipt_footer']));
 				    }
+            }
 					//Customer email receipt end
 					$postData = apply_filters( 'wpspf_payment_form_post_data', $postData);
 
 					//Logic to process CC or Check
 
-						
-					
 					$payload1 = array(
 						// Authorize.net Credentials and API Info
 						"x_tran_key"            => esc_attr( get_option('wpspf_transactionkey') ),
@@ -992,8 +998,18 @@ function wpspf_service_payment_request_ajax(){
 				    if ( ( $r['response_code'] == 1 ) || ( $r['response_code'] == 4 ) ) {
 				        // Payment has been successful
 				        $customername = sanitize_text_field($postData['customer_first_name']);
+                        $message = 'Thanks '.$customername.', your payment has been processed.';
+                        if(isset($formSettings['success_message']) && trim($formSettings['success_message']) !== ''){
+                            $message = $formSettings['success_message'];
+                            preg_match_all('/{(.*?)}/s', $message, $matches);
+                            foreach($matches[1] as $key => $value){
+                                $val = isset($postData[$value]) ? sanitize_text_field($postData[$value]) : '';
+                                $message = str_replace($matches[0][$key], $val, $message);
+                            }
+                        }
+						
 				        $result['status']='success';
-				        $result['msg']= '<div class="success">Thanks! '.$customername.', You have successfully completed your payment.</div>';
+				        $result['msg']= '<div class="success">'.$message.'</div>';
 				        //save data in db
 				        $postData['wpspf_authorizenet_card-number'] = $resp[50];
 				        unset($postData['wpspf_authorizenet_card-expiry']);
@@ -1129,6 +1145,19 @@ function wpspf_update_form_settings($formId, $fields){
     update_option('wpspf_form_settings', $settings);
 }
 
+function wpspf_get_form_settings($formId){
+    $settings = get_option('wpspf_form_settings');
+    if(array_key_exists($formId, $settings)){
+        return $settings[$formId];
+    }
+    return false;
+}
+
+function wpspf_form_exists($formId){
+    $settings = get_option('wpspf_form_settings');
+    return array_key_exists($formId, $settings);
+}
+
 function wpspf_migrate_form_settings($deleteLegacyOptions = false){
     global $wpdb;
     $settings = get_option('wpspf_form_settings');
@@ -1136,11 +1165,11 @@ function wpspf_migrate_form_settings($deleteLegacyOptions = false){
         $table = $wpdb->prefix . 'wpspf_form_fields';
         $formsList = [];
         $formIds = $wpdb->get_results("SELECT DISTINCT form_id FROM $table");
-        $formTitle = get_option('wpspf_paymentheading');
-        $submitButtonLabel = get_option('wpspf_paymentBtnLabel');
-        $emailReceipt = get_option('wpspf_x_email_customer');
-        $emailReceiptHeadingText = get_option('wpspf_x_header_email_receipt');
-        $emailReceiptFooterText = get_option('wpspf_x_footer_email_receipt');
+        $formTitle = sanitize_text_field(get_option('wpspf_paymentheading'));
+        $submitButtonLabel = sanitize_text_field(get_option('wpspf_paymentBtnLabel'));
+        $emailReceipt = sanitize_text_field(get_option('wpspf_x_email_customer'));
+        $emailReceiptHeadingText = sanitize_text_field(get_option('wpspf_x_header_email_receipt'));
+        $emailReceiptFooterText = sanitize_text_field(get_option('wpspf_x_footer_email_receipt'));
 
         foreach($formIds as $value){
             $id = $value->form_id;

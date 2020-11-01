@@ -90,6 +90,11 @@ jQuery('#wpspf_form').on('submit',function(event){
                   }else{
                     jQuery('#wpspf_submit_btn').show();
                   }                  
+                },
+                error : function ( response ){
+                    jQuery('#wpspf_submit_btn_loader').hide();
+                    jQuery('#wpspf_submit_btn').show();
+                    jQuery('#wpspf_response').html('There was an error processing your payment.');                  
                 }
               });
       });
