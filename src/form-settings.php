@@ -31,12 +31,12 @@ if($action==='add-update-form') {
             $fields = [];
             $formId = (isset($_POST['form_id'])) ? sanitize_text_field($_POST['form_id']) : false;
             $parentFormId = (isset($_POST['parent_form_id'])) ? sanitize_text_field($_POST['parent_form_id']) : '';
-            $fields['name'] = (isset($_POST['name'])) ? sanitize_text_field($_POST['name']) : wpspf_get_unique_form_name($formId, 'Form ' . $formId);
-            $fields['title'] = (isset($_POST['title'])) ? sanitize_text_field($_POST['title']) : '';
-            $fields['submit_button_label'] = (isset($_POST['submit_button_label'])) ? sanitize_text_field($_POST['submit_button_label']) : 'Submit';
-            $fields['email_receipt_heading'] = (isset($_POST['email_receipt_heading'])) ? sanitize_text_field($_POST['email_receipt_heading']) : '';
-            $fields['email_receipt_footer'] = (isset($_POST['email_receipt_footer'])) ? sanitize_text_field($_POST['email_receipt_footer']) : '';
-            $fields['success_message'] = (isset($_POST['success_message'])) ? sanitize_text_field($_POST['success_message']) : 'Thank you for your payment.';
+            $fields['name'] = (isset($_POST['name'])) ? wp_unslash(sanitize_text_field($_POST['name'])) : wpspf_get_unique_form_name($formId, 'Form ' . $formId);
+            $fields['title'] = (isset($_POST['title'])) ? wp_unslash(sanitize_text_field($_POST['title'])) : '';
+            $fields['submit_button_label'] = (isset($_POST['submit_button_label'])) ? wp_unslash(sanitize_text_field($_POST['submit_button_label'])) : 'Submit';
+            $fields['email_receipt_heading'] = (isset($_POST['email_receipt_heading'])) ? wp_unslash(sanitize_text_field($_POST['email_receipt_heading'])) : '';
+            $fields['email_receipt_footer'] = (isset($_POST['email_receipt_footer'])) ? wp_unslash(sanitize_text_field($_POST['email_receipt_footer'])) : '';
+            $fields['success_message'] = (isset($_POST['success_message'])) ? wp_unslash(sanitize_text_field($_POST['success_message'])) : 'Thank you for your payment.';
             
             $receipt = (isset($_POST['email_customer_receipt'])) ? sanitize_text_field($_POST['email_customer_receipt']) : '';
             $generateId = (isset($_POST['generate_customer_id'])) ? sanitize_text_field($_POST['generate_customer_id']) : '';

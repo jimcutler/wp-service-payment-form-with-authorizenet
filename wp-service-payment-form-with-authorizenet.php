@@ -40,10 +40,8 @@ function wpspf_on_activation()
     $plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
     global $wpdb;
     $form_fields_table = $wpdb->prefix . 'wpspf_form_fields';
-    $dropSql = "DROP TABLE IF EXISTS $form_fields_table";
-    $wpdb->query($dropSql);
     $charset_collate = $wpdb->get_charset_collate();
-    $sql_form_fields_table = "CREATE TABLE $form_fields_table (
+    $sql_form_fields_table = "CREATE TABLE IF NOT EXISTS $form_fields_table (
               `id` int(11) NOT NULL AUTO_INCREMENT,
               `form_id` int(11) NOT NULL DEFAULT '1',
               `field_name` varchar(150) NOT NULL,
@@ -52,7 +50,6 @@ function wpspf_on_activation()
               PRIMARY KEY (`id`),
               UNIQUE KEY `form_id` (`form_id`,`field_name`)
         ) $charset_collate;"; 
-
     $payment_entry_table = $wpdb->prefix . 'wpspf_payment_entry';
     $sql_payment_entry_table = "CREATE TABLE IF NOT EXISTS $payment_entry_table (
               `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -105,10 +102,22 @@ function wpspf_on_uninstall()
 {
     if ( ! current_user_can( 'activate_plugins' ) )
         return;
-    global $wpdb; 
-    $form_fields_table = $wpdb->prefix . 'wpspf_form_fields';
-    $dropSql = "DROP TABLE IF EXISTS $form_fields_table";
-    $wpdb->query($dropSql);  
+    global $wpdb;
+    $deleteData = get_option('wpspf_removedata');
+    if($deleteData === 1){
+        $form_fields_table = $wpdb->prefix . 'wpspf_form_fields';
+        $dropSql = "DROP TABLE IF EXISTS $form_fields_table";
+        $wpdb->query($dropSql);
+        $payment_entry_table = $wpdb->prefix . 'wpspf_payment_entry';
+        $payment_entry_meta = $wpdb->prefix . 'wpspf_payment_entry_meta';
+        remove_option('wpspfnet_enable');
+        remove_option('wpspfnet_enable_check');
+        remove_option('wpspf_apiloginid');
+        remove_option('wpspf_transactionmode');
+        remove_option('wpspf_sitekey');
+        remove_option('wpspf_secretekey');
+        remove_option('wpspf_removedata');
+    }
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     check_admin_referer( 'bulk-plugins' );
     if ( __FILE__ != WP_UNINSTALL_PLUGIN )
