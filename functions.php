@@ -1016,6 +1016,7 @@ function wpspf_service_payment_request_ajax(){
 				        unset($postData['wpspf_authorizenet_card-cvc']);
 				        unset($postData['spGoogleCaptchaRes']);
 				        unset($postData['g-recaptcha-response']);
+				        do_action('wpspf_before_save_payment_in_db', $postData);
 				        wpspf_save_service_payment_form_data_in_db($postData,'Paid');         
 				    } else {
 				        // Transaction was not succesful            
